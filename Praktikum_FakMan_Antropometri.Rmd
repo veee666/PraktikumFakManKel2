@@ -1,0 +1,975 @@
+---
+title: "Antropometri"
+---
+
+```{r}
+##IMPORTING DATA
+
+data <- read_excel("C:\\Users\\Hp\\Documents\\R Projects\\Pengukuran Antropometri TI UI Angkatan 2022 (Responses).xlsx", 
+     col_types = c("skip", "skip", "text", 
+         "text", "text", "text", "text", "text", 
+         "text", "text", "text", "text", "text", 
+         "text", "text", "text", "numeric", 
+         "text", "text", "text", "text", "text", 
+         "text", "text", "text", "text", "text", 
+         "text", "text", "text", "text", "text", 
+         "text", "text", "text", "text", "text", 
+         "numeric", "text", "text"))
+View(data)
+
+# Mengidentifikasi kolom dimensi
+dimension_columns <- names(data)[grepl("^D[0-9]+", names(data))]
+
+# mengubah semua kolom dimensi menjadi numerik
+data[dimension_columns] <- lapply(data[dimension_columns], function(x) {
+  # Hapus karakter non-numerik kecuali angka dan titik
+  x <- gsub(",", ".", x)  # Mengganti koma dengan titik
+  x <- gsub("[^0-9.]", "", x)  # Menghapus semua karakter kecuali angka dan titik
+  x_numeric <- as.numeric(x)    # Konversi ke numerik
+  return(x_numeric)
+})
+
+# str(data[dimension_columns])
+data= na.omit(data)
+
+# Fungsi untuk mendeteksi dan mengganti outlier
+handle_outliers <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  # Mengganti outlier dengan median
+  median_val <- median(x, na.rm = TRUE)
+  x[x < lower_bound | x > upper_bound] <- median_val
+  
+  return(x)
+}
+
+# Fungsi untuk mendeteksi dan mengganti outlier dengan NA
+set_outliers_to_na <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  
+  # Mengganti outlier dengan NA
+  x[x < lower_bound | x > upper_bound] <- NA
+  
+  return(x)
+}
+
+# Menerapkan penanganan outlier untuk setiap kolom dimensi
+data_cleaned <- data
+data_cleaned[dimension_columns] <- lapply(data_cleaned[dimension_columns], handle_outliers)
+
+# na_counts <- sapply(data_cleaned[dimension_columns], function(x) sum(is.na(x)))
+
+# Optional: Menyimpan data yang sudah dibersihkan
+write_xlsx(data_cleaned, "C:\\Users\\Hp\\Documents\\R Projects\\data_antropometri_clean.xlsx")
+
+
+# gender_column <- "Gender"  # Ganti dengan nama kolom gender yang sesuai
+# 
+# # Mengelompokkan data berdasarkan gender
+# data_male <- data %>% filter(get(gender_column) == "Male")
+# data_female <- data %>% filter(get(gender_column) == "Female")
+# 
+# # Mengubah semua kolom dimensi menjadi numerik
+# data_male[dimension_columns] <- lapply(data_male[dimension_columns], function(x) {
+#   x <- gsub(",", ".", x)  # Mengganti koma dengan titik
+#   x <- gsub("[^0-9.]", "", x)  # Menghapus semua karakter kecuali angka dan titik
+#   x_numeric <- as.numeric(x)    # Konversi ke numerik
+#   return(x_numeric)
+# })
+# 
+# data_female[dimension_columns] <- lapply(data_female[dimension_columns], function(x) {
+#   x <- gsub(",", ".", x)  # Mengganti koma dengan titik
+#   x <- gsub("[^0-9.]", "", x)  # Menghapus semua karakter kecuali angka dan titik
+#   x_numeric <- as.numeric(x)    # Konversi ke numerik
+#   return(x_numeric)
+# })
+# 
+# # Menghapus baris dengan NA
+# data_male <- na.omit(data_male)
+# data_female <- na.omit(data_female)
+# 
+# # Fungsi untuk mendeteksi outlier menggunakan metode IQR
+# detect_outliers <- function(column) {
+#   Q1 <- quantile(column, 0.25, na.rm = TRUE)
+#   Q3 <- quantile(column, 0.75, na.rm = TRUE)
+#   IQR <- Q3 - Q1
+#   lower_bound <- Q1 - 1.5 * IQR
+#   upper_bound <- Q3 + 1.5 * IQR
+#   outliers <- which(column < lower_bound | column > upper_bound)
+#   return(outliers)
+# }
+# 
+# # Pengecekan outlier untuk tiap dimensi pada data pria
+# outlier_results_male <- lapply(dimension_columns, function(col_name) {
+#   col <- data_male[[col_name]]  # Ambil kolom dari tibble
+#   outliers <- detect_outliers(col)
+#   return(list(Dimension = col_name, Outliers = outliers))
+# })
+# 
+# # Pengecekan outlier untuk tiap dimensi pada data wanita
+# outlier_results_female <- lapply(dimension_columns, function(col_name) {
+#   col <- data_female[[col_name]]  # Ambil kolom dari tibble
+#   outliers <- detect_outliers(col)
+#   return(list(Dimension = col_name, Outliers = outliers))
+# })
+# 
+# # Menampilkan hasil pengecekan outlier
+# outlier_summary_male <- do.call(rbind, lapply(outlier_results_male, function(res) {
+#   data.frame(Dimension = res$Dimension, Outlier_Indices = I(list(res$Outliers)))
+# }))
+# 
+# outlier_summary_female <- do.call(rbind, lapply(outlier_results_female, function(res) {
+#   data.frame(Dimension = res$Dimension, Outlier_Indices = I(list(res$Outliers)))
+# }))
+# 
+# print(outlier_summary_male)
+# print(outlier_summary_female)
+# 
+# # Menyimpan hasil ke file Excel jika diperlukan
+# write_xlsx(outlier_summary_male, "C:\\Users\\Hp\\Documents\\R Projects\\outlier_summary_male.xlsx")
+# write_xlsx(outlier_summary_female, "C:\\Users\\Hp\\Documents\\R Projects\\outlier_summary_female.xlsx")
+
+```
+
+```{r}
+### UJI NORMALITAS SETELAH TRANSFORMASI DATA
+### TRANSFORMASI BOX-COX DAN UJI GEARY
+
+library(nortest)
+library(moments)
+library(writexl)
+library(readxl)
+library(dplyr)
+library(MASS)
+
+
+geary_test_formula <- function(x, alpha = 0.05) {
+  n <- length(x)
+  mean_x <- mean(x)
+  
+  # Hitung komponen untuk u
+  u_numerator <- sqrt(pi / 2) * sum(abs(x - mean_x)) / n
+  u_denominator <- sqrt(sum((x - mean_x)^2) / n)
+  u <- u_numerator / u_denominator
+  
+  # Hitung z berdasarkan u
+  z <- ((u - 1) * sqrt(n)) / 0.2661
+  
+  # Hitung z_alpha/2 untuk interval
+  z_alpha_half <- qnorm(1 - alpha / 2)
+  
+  # Hitung batas atas dan bawah
+  lower_bound <- -z_alpha_half
+  upper_bound <- z_alpha_half
+  
+  # Tentukan status distribusi normal
+  status <- ifelse(z >= lower_bound & z <= upper_bound, "Accepted", "Not Accepted")
+  
+  return(list(u = u, z = z, lower_bound = lower_bound, upper_bound = upper_bound, status = status))
+}
+
+# Fungsi untuk melakukan transformasi Box-Cox secara manual
+box_cox_transform <- function(column) {
+  # Periksa apakah terdapat nilai <= 0
+  if (any(column <= 0, na.rm = TRUE)) {
+    # Tambahkan konstanta positif yang cukup besar untuk menghindari nilai <= 0
+    column <- column - min(column, na.rm = TRUE) + 1
+  }
+  
+  # Hitung lambda terbaik menggunakan fungsi boxcox dari paket MASS
+  lambda_seq <- seq(-2, 2, length = 100)  # Rentang lambda yang diuji
+  log_likelihoods <- sapply(lambda_seq, function(lambda) {
+    if (lambda == 0) {
+      sum(log(column))  # Jika lambda = 0, gunakan logaritma
+    } else {
+      sum(log((column^lambda - 1) / lambda))  # Jika lambda != 0, gunakan formula Box-Cox
+    }
+  })
+  
+  lambda_optimal <- lambda_seq[which.max(log_likelihoods)]  # Pilih lambda dengan log-likelihood maksimum
+  
+  # Terapkan transformasi Box-Cox berdasarkan lambda terbaik
+  if (lambda_optimal == 0) {
+    transformed <- log(column)
+  } else {
+    transformed <- (column^lambda_optimal - 1) / lambda_optimal
+  }
+  
+  return(list(transformed = transformed, lambda = lambda_optimal))  # Kembalikan nilai tertransformasi dan lambda
+}
+
+# # Fungsi untuk melakukan transformasi dan uji Geary untuk setiap gender
+# perform_transformation_and_geary <- function(data_subset) {
+#   # Pastikan kolom dimensi bernilai numeric
+#   data_subset[dimension_columns] <- lapply(data_subset[dimension_columns], function(x) as.numeric(na.omit(x)))
+#   
+#   # Lakukan transformasi Box-Cox dan uji Geary untuk setiap kolom dimensi
+#   results_box_cox <- lapply(data_subset[dimension_columns], function(col) {
+#     res <- box_cox_transform(col)
+#     geary_result <- geary_test_formula(res$transformed)
+#     return(list(transformed = res$transformed, geary_result = geary_result))
+#   })
+#   
+#   # Ekstrak hasil
+#   u_values_box_cox <- sapply(results_box_cox, function(res) round(res$geary_result$u, 5))
+#   z_values_box_cox <- sapply(results_box_cox, function(res) round(res$geary_result$z, 5))
+#   status_box_cox <- sapply(results_box_cox, function(res) res$geary_result$status)
+#   
+#   # Gabungkan hasil ke dalam data frame
+#   results <- data.frame(
+#     Dimension = dimension_columns,
+#     Geary_u = u_values_box_cox,
+#     Geary_z = z_values_box_cox,
+#     Status = status_box_cox
+#   )
+#   
+#   return(results)
+# }
+# 
+# # Melakukan transformasi dan uji Geary untuk pria dan wanita
+# results_male <- perform_transformation_and_geary(data_male)
+# results_female <- perform_transformation_and_geary(data_female)
+# 
+# # Menampilkan hasil
+# print(results_male)
+# print(results_female)
+# 
+# # Menyimpan hasil ke file Excel
+# write_xlsx(results_male, "C:\\Users\\Hp\\Documents\\R Projects\\results_box_cox_male.xlsx")
+# write_xlsx(results_female, "C:\\Users\\Hp\\Documents\\R Projects\\results_box_cox_female.xlsx")
+
+# Mengatasi masalah NA dalam kolom dan memastikan kolom numeric
+dimension_columns_cleaned <- lapply(data[dimension_columns], function(x) as.numeric(na.omit(x)))
+
+# Lakukan transformasi Box-Cox pada setiap kolom
+box_cox_results <- lapply(dimension_columns_cleaned, function(col) {
+  res <- box_cox_transform(col)
+  return(res$transformed)  # Ambil hasil transformasi
+})
+
+# Uji Geary setelah transformasi Box-Cox
+geary_results_box_cox <- lapply(box_cox_results, geary_test_formula)
+
+# Ekstrak hasil uji Geary
+u_values_box_cox <- sapply(geary_results_box_cox, function(res) round(res$u, 5))
+z_values_box_cox <- sapply(geary_results_box_cox, function(res) round(res$z, 5))
+status_box_cox <- sapply(geary_results_box_cox, function(res) res$status)
+
+# Gabungkan hasil ke dalam data frame
+results_box_cox <- data.frame(
+  Dimension = dimension_columns,
+  Geary = u_values_box_cox,
+  Z_Score = z_values_box_cox,
+  Status = status_box_cox
+)
+
+# Tampilkan hasil
+print(results_box_cox)
+write_xlsx(results_box_cox, "C:\\Users\\Hp\\Documents\\R Projects\\results_box_cox.xlsx")
+
+```
+
+```{r}
+library(nortest)
+library(moments)
+library(writexl)
+library(readxl)
+library(dplyr)
+library(MASS)
+
+
+# Fungsi untuk melakukan transformasi akar kuadrat secara manual
+sqrt_transform <- function(column) {
+  # Periksa apakah terdapat nilai < 0
+  if (any(column < 0, na.rm = TRUE)) {
+    stop("Data harus non-negatif untuk transformasi akar kuadrat.")
+  }
+  # Terapkan transformasi akar kuadrat
+  transformed <- sqrt(column)
+  return(transformed)
+}
+
+# Fungsi untuk uji normalitas (misalnya menggunakan uji Geary)
+geary_test_formula <- function(x, alpha = 0.05) {
+  n <- length(x)
+  mean_x <- mean(x)
+  
+  # Hitung komponen untuk u
+  u_numerator <- sqrt(pi / 2) * sum(abs(x - mean_x)) / n
+  u_denominator <- sqrt(sum((x - mean_x)^2) / n)
+  u <- u_numerator / u_denominator
+  
+  # Hitung z berdasarkan u
+  z <- (u - 1) * sqrt(n) / 0.2661
+  
+  # Hitung z_alpha/2 untuk interval
+  z_alpha_half <- qnorm(1 - alpha / 2)
+  
+  # Tentukan status distribusi normal
+  status <- ifelse(z >= -z_alpha_half & z <= z_alpha_half, "Accepted", "Not Accepted")
+  
+  return(list(u = u, z = z, lower_bound = -z_alpha_half, upper_bound = z_alpha_half, status = status))
+}
+
+# Fungsi untuk melakukan transformasi logaritma dan uji Geary
+perform_log_transformation_and_geary <- function(data_subset) {
+  # Pastikan kolom dimensi bernilai numeric
+  data_subset[dimension_columns] <- lapply(data_subset[dimension_columns], function(x) as.numeric(na.omit(x)))
+  
+  # Lakukan transformasi logaritma dan uji Geary untuk setiap kolom dimensi
+  results_log <- lapply(data_subset[dimension_columns], function(col) {
+    # Periksa nilai <= 0
+    if (any(col <= 0, na.rm = TRUE)) {
+      # Tambahkan konstanta positif untuk menghindari log(0) atau log negatif
+      col <- col + abs(min(col, na.rm = TRUE)) + 1
+    }
+    transformed <- log(col)  # Transformasi logaritma
+    geary_result <- geary_test_formula(transformed)  # Uji Geary
+    return(list(transformed = transformed, geary_result = geary_result))
+  })
+  
+  # Ekstrak hasil
+  u_values_log <- sapply(results_log, function(res) round(res$geary_result$u, 5))
+  z_values_log <- sapply(results_log, function(res) round(res$geary_result$z, 5))
+  status_log <- sapply(results_log, function(res) res$geary_result$status)
+  
+  # Gabungkan hasil ke dalam data frame
+  results <- data.frame(
+    Dimension = dimension_columns,
+    Geary_u = u_values_log,
+    Geary_z = z_values_log,
+    Status = status_log
+  )
+  
+  return(results)
+}
+
+# Melakukan transformasi logaritma dan uji Geary untuk pria dan wanita
+results_male_log <- perform_log_transformation_and_geary(data_male)
+results_female_log <- perform_log_transformation_and_geary(data_female)
+
+# Menampilkan hasil
+print(results_male_log)
+print(results_female_log)
+
+# Menyimpan hasil ke file Excel
+write_xlsx(results_male_log, "C:\\Users\\Hp\\Documents\\R Projects\\results_log_male.xlsx")
+write_xlsx(results_female_log, "C:\\Users\\Hp\\Documents\\R Projects\\results_log_female.xlsx")
+
+# # Fungsi untuk melakukan transformasi akar kuadrat dan uji Geary
+# perform_sqrt_transformation_and_geary <- function(data_subset) {
+#   # Pastikan kolom dimensi bernilai numeric
+#   data_subset[dimension_columns] <- lapply(data_subset[dimension_columns], function(x) as.numeric(na.omit(x)))
+#   
+#   # Lakukan transformasi akar kuadrat dan uji Geary untuk setiap kolom dimensi
+#   results_sqrt <- lapply(data_subset[dimension_columns], function(col) {
+#     transformed <- sqrt(col)  # Transformasi akar kuadrat
+#     geary_result <- geary_test_formula(transformed)  # Uji Geary
+#     return(list(transformed = transformed, geary_result = geary_result))
+#   })
+#   
+#   # Ekstrak hasil
+#   u_values_sqrt <- sapply(results_sqrt, function(res) round(res$geary_result$u, 5))
+#   z_values_sqrt <- sapply(results_sqrt, function(res) round(res$geary_result$z, 5))
+#   status_sqrt <- sapply(results_sqrt, function(res) res$geary_result$status)
+#   
+#   # Gabungkan hasil ke dalam data frame
+#   results <- data.frame(
+#     Dimension = dimension_columns,
+#     Geary_u = u_values_sqrt,
+#     Geary_z = z_values_sqrt,
+#     Status = status_sqrt
+#   )
+#   
+#   return(results)
+# }
+# 
+# # Melakukan transformasi akar kuadrat dan uji Geary untuk pria dan wanita
+# results_male_sqrt <- perform_sqrt_transformation_and_geary(data_male)
+# results_female_sqrt <- perform_sqrt_transformation_and_geary(data_female)
+# 
+# # Menampilkan hasil
+# print(results_male_sqrt)
+# print(results_female_sqrt)
+# 
+# # Menyimpan hasil ke file Excel
+# write_xlsx(results_male_sqrt, "C:\\Users\\Hp\\Documents\\R Projects\\results_sqrt_male.xlsx")
+# write_xlsx(results_female_sqrt, "C:\\Users\\Hp\\Documents\\R Projects\\results_sqrt_female.xlsx")
+
+# # Contoh penggunaan
+# dimension_columns <- names(data)[grepl("^D[0-9]+", names(data))]  # Mengidentifikasi kolom dimensi
+# 
+# # Hapus baris dengan NA
+# data <- na.omit(data)
+# 
+# # Lakukan transformasi akar kuadrat dan uji normalitas pada setiap kolom
+# results_sqrt <- lapply(dimension_columns, function(col_name) {
+#   col <- data[[col_name]]  # Ambil kolom dari tibble
+# 
+#   # Lakukan transformasi akar kuadrat
+#   sqrt_transformed <- sqrt_transform(col)
+#   
+#   # Lakukan uji Geary pada data yang tertransformasi
+#   result <- geary_test_formula(sqrt_transformed)
+#   
+#   return(result)
+# })
+# 
+# # Ekstrak hasil uji Geary
+# u_values_sqrt <- sapply(results_sqrt, function(res) round(res$u, 5))
+# z_values_sqrt <- sapply(results_sqrt, function(res) round(res$z, 5))
+# lower_bounds_sqrt <- sapply(results_sqrt, function(res) round(res$lower_bound, 5))
+# upper_bounds_sqrt <- sapply(results_sqrt, function(res) round(res$upper_bound, 5))
+# status_values_sqrt <- sapply(results_sqrt, function(res) res$status)
+# 
+# # Gabungkan hasil ke dalam data frame
+# results_sqrt <- data.frame(
+#   Dimension = dimension_columns,
+#   Sqrt_Transformed_u = u_values_sqrt,
+#   Sqrt_Transformed_z = z_values_sqrt,
+#   Sqrt_Transformed_Lower_Bound = lower_bounds_sqrt,
+#   Sqrt_Transformed_Upper_Bound = upper_bounds_sqrt,
+#   Status = status_values_sqrt
+# )
+# 
+# # Tampilkan hasil
+# print(results_sqrt)
+# 
+# # Menyimpan hasil ke file Excel jika diperlukan
+# write_xlsx(results_sqrt, "C:\\Users\\Hp\\Documents\\R Projects\\results_sqrt.xlsx")
+```
+
+```{r}
+### UJI NORMALITAS SEBELUM TRANSFORMASI DATA
+### UJI GEARY
+
+library(nortest)
+library(moments)
+library(writexl)
+library(readxl)
+library(dplyr)
+library(MASS)
+
+
+geary_test_formula <- function(x, alpha = 0.05) {
+  n <- length(x)
+  mean_x <- mean(x)
+  
+  # Hitung komponen untuk u
+  u_numerator <- sqrt(pi / 2) * sum(abs(x - mean_x)) / n
+  u_denominator <- sqrt(sum((x - mean_x)^2) / n)
+  u <- u_numerator / u_denominator
+  
+  # Hitung z berdasarkan u
+  z <- ((u - 1) * sqrt(n)) / 0.2661
+  
+  # Hitung z_alpha/2 untuk interval
+  z_alpha_half <- qnorm(1 - alpha / 2)
+  
+  # Hitung batas atas dan bawah
+  lower_bound <- -z_alpha_half
+  upper_bound <- z_alpha_half
+  
+  # Tentukan status distribusi normal
+  status <- ifelse(z >= lower_bound & z <= upper_bound, "Accepted", "Not Accepted")
+  
+  return(list(u = u, z = z, lower_bound = lower_bound, upper_bound = upper_bound, status = status))
+}
+
+# # Uji Geary untuk setiap dimensi pada data pria
+# geary_result_male <- lapply(data_male[dimension_columns], geary_test_formula)
+# 
+# # Uji Geary untuk setiap dimensi pada data wanita
+# geary_result_female <- lapply(data_female[dimension_columns], geary_test_formula)
+# 
+# # Ekstrak hasil uji Geary untuk pria
+# geary_u_values_male <- sapply(geary_result_male, function(x) round(x$u, 5))
+# geary_z_values_male <- sapply(geary_result_male, function(x) round(x$z, 5))
+# status_male <- sapply(geary_result_male, function(x) x$status)
+# 
+# # Buat data frame hasil untuk pria
+# results_geary_test_male <- data.frame(
+#   Dimension = dimension_columns,
+#   Geary_u = geary_u_values_male,
+#   Geary_z = geary_z_values_male,
+#   Status = status_male
+# )
+# 
+# # Ekstrak hasil uji Geary untuk wanita
+# geary_u_values_female <- sapply(geary_result_female, function(x) round(x$u, 5))
+# geary_z_values_female <- sapply(geary_result_female, function(x) round(x$z, 5))
+# status_female <- sapply(geary_result_female, function(x) x$status)
+# 
+# # Buat data frame hasil untuk wanita
+# results_geary_test_female <- data.frame(
+#   Dimension = dimension_columns,
+#   Geary_u = geary_u_values_female,
+#   Geary_z = geary_z_values_female,
+#   Status = status_female
+# )
+# 
+# # Tampilkan hasil
+# print(results_geary_test_male)
+# print(results_geary_test_female)
+# 
+# # Menyimpan hasil ke file Excel
+# write_xlsx(results_geary_test_male, "C:\\Users\\Hp\\Documents\\R Projects\\results_geary_test_male.xlsx")
+# write_xlsx(results_geary_test_female, "C:\\Users\\Hp\\Documents\\R Projects\\results_geary_test_female.xlsx")
+
+# Uji Geary untuk setiap dimensi
+geary_result <- lapply(data[dimension_columns], geary_test_formula)
+
+# Ekstrak hasil uji Geary
+geary_u_values <- sapply(geary_result, function(x) round(x$u, 5))
+geary_z_values <- sapply(geary_result, function(x) round(x$z, 5))
+geary_lower_bound <- sapply(geary_result, function(x) round(x$lower_bound, 2))
+geary_upper_bound <- sapply(geary_result, function(x) round(x$upper_bound, 2))
+status <- sapply(geary_result, function(x) x$status)
+
+# Buat data frame hasil
+results_geary_test <- data.frame(
+  Dimension = dimension_columns,
+  Geary = geary_u_values,
+  Lower_Bound = geary_lower_bound,
+  Z_Score = geary_z_values,
+  Upper_Bound = geary_upper_bound,
+  Status = status
+)
+
+# Tampilkan hasil
+print(results_geary_test)
+write_xlsx(results_geary_test, "C:\\Users\\Hp\\Documents\\R Projects\\results_geary_test.xlsx")
+
+```
+
+```{r}
+### Q-Q PLOT NORMALITAS, SETELAH DAN SEBELUM TRANSFORMASI
+
+
+library(ggplot2)
+library(gridExtra)
+
+# Q-Q Plot untuk Box-Cox, dibagi dalam 3 bagian
+qq_plots_box_cox_1_12 <- lapply(1:12, function(i) {
+  ggplot(data.frame(x = box_cox_results[[i]]), aes(sample = x)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("Q-Q Plot untuk ", dimension_columns[i]), 
+         x = "Theoretical Quantiles", 
+         y = "Sample Quantiles") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))
+})
+
+qq_plots_box_cox_13_24 <- lapply(13:24, function(i) {
+  ggplot(data.frame(x = box_cox_results[[i]]), aes(sample = x)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("Q-Q Plot untuk ", dimension_columns[i]), 
+         x = "Theoretical Quantiles", 
+         y = "Sample Quantiles") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))
+})
+
+qq_plots_box_cox_25_36 <- lapply(25:36, function(i) {
+  ggplot(data.frame(x = box_cox_results[[i]]), aes(sample = x)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("Q-Q Plot untuk ", dimension_columns[i]), 
+         x = "Theoretical Quantiles", 
+         y = "Sample Quantiles") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))
+})
+
+
+# Gabungkan plot dalam grid masing-masing
+grid.arrange(grobs = qq_plots_box_cox_1_12, ncol = 3)
+grid.arrange(grobs = qq_plots_box_cox_13_24, ncol = 3)
+grid.arrange(grobs = qq_plots_box_cox_25_36, ncol = 3)
+
+# Q-Q Plot untuk data sebelum transformasi, dibagi dalam 3 bagian
+qq_plots_1_12 <- lapply(1:12, function(i) {
+  ggplot(data.frame(x = data[[dimension_columns[i]]]), aes(sample = x)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("Q-Q Plot untuk ", dimension_columns[i]), 
+         x = "Theoretical Quantiles", 
+         y = "Sample Quantiles") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))
+})
+
+qq_plots_13_24 <- lapply(13:24, function(i) {
+  ggplot(data.frame(x = data[[dimension_columns[i]]]), aes(sample = x)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("Q-Q Plot untuk ", dimension_columns[i]),  
+         x = "Theoretical Quantiles", 
+         y = "Sample Quantiles") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))
+})
+
+qq_plots_25_36 <- lapply(25:36, function(i) {
+  ggplot(data.frame(x = data[[dimension_columns[i]]]), aes(sample = x)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("Q-Q Plot untuk ", dimension_columns[i]), 
+         x = "Theoretical Quantiles", 
+         y = "Sample Quantiles") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))
+})
+
+# Gabungkan plot dalam grid masing-masing
+grid.arrange(grobs = qq_plots_1_12, ncol = 3)
+grid.arrange(grobs = qq_plots_13_24, ncol = 3)
+grid.arrange(grobs = qq_plots_25_36, ncol = 3)
+
+```
+
+```{r}
+### UJI KESERAGAMAN (BUAT NGELIAT OUTLIER DATA)
+
+
+library(ggplot2)
+library(writexl)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+
+# Mengelompokkan data berdasarkan gender
+data_male <- data %>% filter(get(gender_column) == "Male")
+data_female <- data %>% filter(get(gender_column) == "Female")
+
+# Fungsi untuk menghitung keseragaman
+calculate_homogeneity <- function(data_subset) {
+  results_homogeneity <- data.frame(
+    Dimension = dimension_columns,
+    Mean = round(sapply(dimension_columns, function(col) mean(data_subset[[col]], na.rm = TRUE)), 3),
+    Std_Dev = round(sapply(dimension_columns, function(col) sd(data_subset[[col]], na.rm = TRUE)), 3)
+  )
+  
+  # Menghitung Upper dan Lower Bound serta Status
+  results_homogeneity <- results_homogeneity %>%
+    mutate(
+      Upper_Bound = round(Mean + 3 * Std_Dev,3),
+      Lower_Bound = round(Mean - 3 * Std_Dev,3),
+      Status = ifelse(Mean <= Upper_Bound & Mean >= Lower_Bound, "Uniform", "Not Uniform")
+    )
+  
+  return(results_homogeneity)
+}
+
+# Menghitung keseragaman untuk pria dan wanita
+results_homogeneity_male <- calculate_homogeneity(data_male)
+results_homogeneity_female <- calculate_homogeneity(data_female)
+
+# Menyiapkan data untuk plotting
+plot_data_male <- results_homogeneity_male %>%
+  pivot_longer(cols = c("Mean", "Upper_Bound", "Lower_Bound"), 
+               names_to = "Type", values_to = "Value")
+
+plot_data_female <- results_homogeneity_female %>%
+  pivot_longer(cols = c("Mean", "Upper_Bound", "Lower_Bound"), 
+               names_to = "Type", values_to = "Value")
+
+# Plot untuk pria
+plot_homogeneity_male <- ggplot(plot_data_male, aes(x = Dimension, y = Value, color = Type)) +
+  geom_line(aes(group = Type)) +
+  geom_point() +
+  labs(title = "Uji Keseragaman Data Pria", x = "Dimensi", y = "Nilai") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14)) +
+  scale_color_manual(values = c("red", "black", "blue"))
+
+# Plot untuk wanita
+plot_homogeneity_female <- ggplot(plot_data_female, aes(x = Dimension, y = Value, color = Type)) +
+  geom_line(aes(group = Type)) +
+  geom_point() +
+  labs(title = "Uji Keseragaman Data Wanita", x = "Dimensi", y = "Nilai") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14)) +
+  scale_color_manual(values = c("red", "black", "blue"))
+
+# Tampilkan plot untuk pria dan wanita
+print(plot_homogeneity_male)
+print(plot_homogeneity_female)
+
+# Menyimpan hasil ke file Excel
+write_xlsx(results_homogeneity_male, "C:\\Users\\Hp\\Documents\\R Projects\\results_homogeneity_male.xlsx")
+write_xlsx(results_homogeneity_female, "C:\\Users\\Hp\\Documents\\R Projects\\results_homogeneity_female.xlsx")
+
+# # Menghitung Mean, Standar Deviasi, dan Status untuk setiap dimensi
+# results_homogeneity <- data.frame(
+#   Dimension = dimension_columns,
+#   Mean = sapply(dimension_columns, function(col) mean(data[[col]], na.rm = TRUE)),
+#   Std_Dev = sapply(dimension_columns, function(col) sd(data[[col]], na.rm = TRUE))
+# )
+# 
+# # Menghitung Upper dan Lower Bound serta Status
+# results_homogeneity <- results_homogeneity %>%
+#   mutate(
+#     Upper_Bound = Mean + 3 * Std_Dev,
+#     Lower_Bound = Mean - 3 * Std_Dev,
+#     Status = ifelse(Mean <= Upper_Bound & Mean >= Lower_Bound, "Uniform", "Not Uniform")
+#   )
+# 
+# print(results_homogeneity)
+# 
+# # Menyiapkan data untuk plotting
+# plot_data <- results_homogeneity %>%
+#   pivot_longer(cols = c("Mean", "Upper_Bound", "Lower_Bound"), 
+#                names_to = "Type", values_to = "Value")
+# 
+# # Plot pertama untuk dimensi 1-18
+# plot_homogeneity_1 <- ggplot(results_homogeneity[1:18, ], aes(x = Dimension, y = Mean, group = 1)) +
+#   geom_line(aes(y = Mean, color = "Mean")) +
+#   geom_line(aes(y = Upper_Bound, color = "Upper Limit")) +
+#   geom_line(aes(y = Lower_Bound, color = "Lower Limit")) +
+#   geom_point(aes(y = Mean)) +
+#   geom_point(aes(y = Upper_Bound)) +
+#   geom_point(aes(y = Lower_Bound)) +
+#   labs(title = "Uji Keseragaman Data Dimensi 1-18", x = "Dimensi", y = "Nilai") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14)) +
+#   scale_x_discrete(limits = results_homogeneity$Dimension[1:18]) +
+#   scale_color_manual(values = c("red", "black", "blue"))
+# 
+# # Plot kedua untuk dimensi 19-36
+# plot_homogeneity_2 <- ggplot(results_homogeneity[19:36, ], aes(x = Dimension, y = Mean, group = 1)) +
+#   geom_line(aes(y = Mean, color = "Mean")) +
+#   geom_line(aes(y = Upper_Bound, color = "Upper Limit")) +
+#   geom_line(aes(y = Lower_Bound, color = "Lower Limit")) +
+#   geom_point(aes(y = Mean)) +
+#   geom_point(aes(y = Upper_Bound)) +
+#   geom_point(aes(y = Lower_Bound)) +
+#   labs(title = "Uji Keseragaman Data Dimensi 19-36", x = "Dimensi", y = "Nilai") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 14)) +
+#   scale_x_discrete(limits = results_homogeneity$Dimension[19:36]) +
+#   scale_color_manual(values = c("red", "black", "blue"))
+# 
+# # Tampilkan plot 1
+# plot_homogeneity_1
+# 
+# # Tampilkan plot 2
+# plot_homogeneity_2
+# 
+# # Menyimpan hasil ke file Excel
+# write_xlsx(results_homogenity, "C:\\Users\\Hp\\Documents\\R Projects\\results_homogenity.xlsx")
+
+# # Plot untuk seluruh dimensi
+# plot_homogeneity <- ggplot(results_homogeneity, aes(x = Dimension, y = Mean, group = 1)) +
+#   geom_line(aes(y = Mean, color = "Mean")) +
+#   geom_line(aes(y = Upper_Bound, color = "Upper Limit")) +
+#   geom_line(aes(y = Lower_Bound, color = "Lower")) +
+#   geom_point(aes(y = Mean)) +
+#   geom_point(aes(y = Upper_Bound)) +
+#   geom_point(aes(y = Lower_Bound)) +
+#   labs(title = "Uji Keseragaman Data", x = "Dimensi", y = "Nilai") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 8)) +  # Memutar teks sumbu X dan mengubah ukuran
+#   scale_x_discrete(limits = results_homogeneity$Dimension) +  # Menjaga urutan dimensi
+#   scale_color_manual(values = c("red", "black", "blue"))
+# 
+# plot_homogeneity
+
+```
+
+```{r}
+### UJI KECUKUPAN DATA
+
+# Fungsi untuk menghitung kecukupan data (N')
+calculate_data_sufficiency <- function(data, confidence_level = 2, precision = 0.05) {
+  # Set k berdasarkan tingkat keyakinan (95% = 2)
+  k <- confidence_level  # Untuk tingkat keyakinan 95%
+  
+  # Set s (derajat ketelitian = 5%)
+  s <- precision
+  
+  # Hitung komponen
+  n <- length(data)
+  sum_x <- sum(data)
+  sum_x_squared <- sum(data^2)
+  
+  # Hitung N' menggunakan rumus
+  N_prime <- (((k/s) * sqrt(n * sum_x_squared - (sum_x)^2)) / sum_x)^2
+  
+  # Bulatkan ke angka bulat terdekat
+  N_prime <- ceiling(N_prime)
+  
+  # Buat hasil
+  result <- data.frame(
+    N_prime = N_prime,
+    N = n,
+    Status = ifelse(n >= N_prime, "Adequate", "Not Adequate"),
+    k = k,
+    s = s
+  )
+  
+  return(result)
+}
+
+# Mengelompokkan data berdasarkan gender
+data_male <- data %>% filter(get(gender_column) == "Male")
+data_female <- data %>% filter(get(gender_column) == "Female")
+
+# Menghitung kecukupan data untuk setiap kolom dalam dimension_columns untuk pria dan wanita
+sufficiency_results_male <- lapply(dimension_columns, function(col) {
+  result <- calculate_data_sufficiency(data_male[[col]])
+  result$Dimension <- col  # Menambahkan kolom Dimension
+  return(result)
+})
+
+sufficiency_results_female <- lapply(dimension_columns, function(col) {
+  result <- calculate_data_sufficiency(data_female[[col]])
+  result$Dimension <- col  # Menambahkan kolom Dimension
+  return(result)
+})
+
+# Menggabungkan hasil menjadi satu data frame
+sufficiency_summary_male <- do.call(rbind, sufficiency_results_male)
+sufficiency_summary_female <- do.call(rbind, sufficiency_results_female)
+
+sufficiency_summary_male <- sufficiency_summary_male[, c("Dimension", "N_prime", "N", "Status", "k", "s")]
+sufficiency_summary_female <- sufficiency_summary_female[, c("Dimension", "N_prime", "N", "Status", "k", "s")]
+
+# Menampilkan hasil
+print(sufficiency_summary_male)
+print(sufficiency_summary_female)
+
+
+# Fungsi untuk menghitung kecukupan data overall
+calculate_kecukupan_summary <- function(sufficiency_summary) {
+  # Menghitung sum dari semua kolom numerik
+  summary_results <- data.frame(
+    Total_N_prime = sum(sufficiency_summary$N_prime),
+    Total_N = sum(sufficiency_summary$N),
+    Status = ifelse(sum(sufficiency_summary$N) >= sum(sufficiency_summary$N_prime), 
+                   "Adequate", "Not Adequate"),
+    k = unique(sufficiency_summary$k)[1],
+    s = unique(sufficiency_summary$s)[1]
+  )
+  
+  return(summary_results)
+}
+
+# Menghitung keseragaman keseluruhan untuk pria dan wanita
+overall_kecukupan_male <- calculate_kecukupan_summary(sufficiency_summary_male)
+overall_kecukupan_female <- calculate_kecukupan_summary(sufficiency_summary_female)
+
+# Menyimpan hasil ke file Excel
+write_xlsx(sufficiency_summary_male, "C:\\Users\\Hp\\Documents\\R Projects\\results_kecukupan_data_male.xlsx")
+write_xlsx(sufficiency_summary_female, "C:\\Users\\Hp\\Documents\\R Projects\\results_kecukupan_data_female.xlsx")
+
+# Menyimpan hasil keseragaman keseluruhan ke file Excel
+write_xlsx(overall_kecukupan_male, "C:\\Users\\Hp\\Documents\\R Projects\\overall_kecukupan_male.xlsx")
+write_xlsx(overall_kecukupan_female, "C:\\Users\\Hp\\Documents\\R Projects\\overall_kecukupan_female.xlsx")
+
+# Menampilkan hasil keseragaman keseluruhan
+print(overall_kecukupan_male)
+print(overall_kecukupan_female)
+
+# Menghitung kecukupan data untuk setiap kolom dalam dimension_columns
+sufficiency_results <- lapply(dimension_columns, function(col) {
+  result<-calculate_data_sufficiency(data[[col]])
+  return(result)
+})
+
+# Menggabungkan hasil menjadi satu data frame
+sufficiency_summary <- do.call(rbind, sufficiency_results)
+sufficiency_summary$Dimension <- rep(dimension_columns, each = 1)
+
+overall_kecukupan_all <- calculate_kecukupan_summary(sufficiency_summary)
+
+print(sufficiency_summary)
+
+# Menyimpan hasil ke file Excel
+write_xlsx(sufficiency_summary, "C:\\Users\\Hp\\Documents\\R Projects\\results_kecukupan_data.xlsx")
+write_xlsx(overall_kecukupan_all, "C:\\Users\\Hp\\Documents\\R Projects\\overall_kecukupan_all.xlsx")
+
+
+```
+
+```{r}
+### UJI PERSENTIL
+
+
+library(dplyr)
+library(tidyr)
+
+# Fungsi untuk menghitung persentil 5, 50, dan 95 berdasarkan gender
+hitung_persentil_antropometri <- function(data_subset) {
+  # Hitung statistik dasar
+  mean_x <- mean(data_subset, na.rm = TRUE)
+  sd_x <- sd(data_subset, na.rm = TRUE)
+  
+  # Hitung persentil 5, 50, dan 95
+  p5 <- round(mean_x - (1.645 * sd_x),3)
+  p50 <- round(mean_x,3)
+  p95 <- round(mean_x + (1.645 * sd_x),3)
+  
+  return(c(P5 = p5, P50 = p50, P95 = p95))
+}
+
+# Mengelompokkan data berdasarkan gender
+data_male <- data %>% filter(get(gender_column) == "Male")
+data_female <- data %>% filter(get(gender_column) == "Female")
+
+# Menghitung persentil untuk setiap dimensi dan setiap gender
+persentil_results_male <- lapply(dimension_columns, function(col) {
+  hitung_persentil_antropometri(data_male[[col]])
+})
+
+persentil_results_female <- lapply(dimension_columns, function(col) {
+  hitung_persentil_antropometri(data_female[[col]])
+})
+
+# Menghitung persentil untuk setiap dimensi tanpa mempertimbangkan gender
+persentil_results_all <- lapply(dimension_columns, function(col) {
+  hitung_persentil_antropometri(data[[col]])
+})
+
+# Menggabungkan hasil menjadi data frame
+persentil_summary_all <- do.call(rbind, persentil_results_all)
+persentil_summary_male <- do.call(rbind, persentil_results_male)
+persentil_summary_female <- do.call(rbind, persentil_results_female)
+
+# Menambahkan kolom dimensi
+persentil_summary_all <- as.data.frame(persentil_summary_all)
+persentil_summary_male <- as.data.frame(persentil_summary_male)
+persentil_summary_female <- as.data.frame(persentil_summary_female)
+persentil_summary_male$Dimension <- dimension_columns
+persentil_summary_male <- persentil_summary_male[, c("Dimension", "P5", "P50", "P95")]
+persentil_summary_female$Dimension <- dimension_columns
+persentil_summary_female <- persentil_summary_female[, c("Dimension", "P5", "P50", "P95")]
+persentil_summary_all$Dimension <- dimension_columns
+persentil_summary_all <- persentil_summary_all[, c("Dimension", "P5", "P50", "P95")]
+
+# Menampilkan hasil
+print(persentil_summary_male)
+print(persentil_summary_female)
+print(persentil_summary_all)
+
+# Menyimpan hasil ke file Excel
+write_xlsx(persentil_summary_male, "C:\\Users\\Hp\\Documents\\R Projects\\persentil_male.xlsx")
+write_xlsx(persentil_summary_female, "C:\\Users\\Hp\\Documents\\R Projects\\persentil_female.xlsx")
+write_xlsx(persentil_summary_all, "C:\\Users\\Hp\\Documents\\R Projects\\persentil_all.xlsx")
+
+
+```
+
+
+
+
